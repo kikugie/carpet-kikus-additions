@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.ArrayList;
-import java.util.List;
 
 @Mixin(targets = "carpet/helpers/EntityPlayerActionPack$ActionType$1")
 public class CarpetEntityPlayerActionPackMixin {
@@ -39,52 +38,68 @@ public class CarpetEntityPlayerActionPackMixin {
 
         BlockEntity targetedBlockEntity = player.getWorld().getBlockEntity(target.getBlockPos());
         if (!(targetedBlockEntity instanceof Inventory inventory) || !((Inventory) targetedBlockEntity).canPlayerUse(player)) return;
+        mergeInventories(player.getInventory(), inventory);
+        player.closeHandledScreen();
+    }
 
-        // List slots that can be filled
-        boolean assumeFull = true;
-        List<Integer> availableInventorySlots = new java.util.ArrayList<>();
+    private static void mergeInventories(Inventory source, Inventory target) {
+        ArrayList<Integer> sourceSlots = getPopulatedSlots(source);
+        ArrayList<Integer> targetSlots = getAvailableSlots(target);
+        if (sourceSlots.isEmpty() || targetSlots.isEmpty()) return;
+
+        int sourceIndex = 0;
+        int targetIndex = 0;
+
+        while (sourceIndex < source.size()) {
+            ItemStack sourceItemStack = source.getStack(sourceIndex);
+            ItemStack targetItemStack = target.getStack(targetIndex);
+            if (targetItemStack.getCount() >= targetItemStack.getMaxCount()) {
+                targetIndex++;
+                continue;
+            }
+            if (targetItemStack.isEmpty()) {
+                target.setStack(targetIndex, sourceItemStack);
+                source.setStack(sourceIndex, ItemStack.EMPTY);
+                sourceIndex++;
+                continue;
+            }
+            if (ItemStack.canCombine(sourceItemStack, targetItemStack)) {
+                int modifier = Math.min(sourceItemStack.getCount(), targetItemStack.getMaxCount() - targetItemStack.getCount());
+                targetItemStack.increment(modifier);
+                sourceItemStack.decrement(modifier);
+                if (sourceItemStack.isEmpty()) {
+                    sourceIndex++;
+                    continue;
+                }
+                continue;
+            }
+
+            targetIndex = (targetIndex + 1) % targetSlots.size();
+            if (targetIndex == 0) {
+                sourceIndex++;
+            }
+
+        }
+        target.markDirty();
+    }
+
+    private static ArrayList<Integer> getAvailableSlots(Inventory inventory) {
+        ArrayList<Integer> availableSlots = new ArrayList<>();
         for (int i = 0; i < inventory.size(); i++) {
             ItemStack itemStack = inventory.getStack(i);
             if (itemStack.getCount() >= itemStack.getMaxCount()) continue;
-            assumeFull = false;
-            availableInventorySlots.add(i);
+            availableSlots.add(i);
         }
-        if (assumeFull) return;
+        return availableSlots;
+    }
 
-        // List slots that have items
-        ArrayList<Integer> populatedPlayerSlots = new java.util.ArrayList<>();
-        for (int i = 0; i < player.getInventory().main.size(); i++) {
-            ItemStack itemStack = player.getInventory().getStack(i);
+    private static ArrayList<Integer> getPopulatedSlots(Inventory inventory) {
+        ArrayList<Integer> populatedSlots = new ArrayList<>();
+        for (int i = 0; i < inventory.size(); i++) {
+            ItemStack itemStack = inventory.getStack(i);
             if (itemStack.isEmpty()) continue;
-            populatedPlayerSlots.add(i);
+            populatedSlots.add(i);
         }
-        if (populatedPlayerSlots.isEmpty()) return;
-
-        // Move items
-        int playerInventoryIndex = 0;
-        int inventoryIndex = 0;
-        while (playerInventoryIndex < populatedPlayerSlots.size() && inventoryIndex < availableInventorySlots.size()) {
-            ItemStack playerItemStack = player.getInventory().getStack(playerInventoryIndex);
-            ItemStack inventoryItemStack = inventory.getStack(inventoryIndex);
-            if (inventoryItemStack.isEmpty()) {
-                inventory.setStack(inventoryIndex, playerItemStack);
-                player.getInventory().setStack(playerInventoryIndex, ItemStack.EMPTY);
-                playerInventoryIndex++;
-                continue;
-            }
-            if (ItemStack.canCombine(playerItemStack, inventoryItemStack)) {
-                int delta = Math.min(playerItemStack.getCount(), inventoryItemStack.getMaxCount() - inventoryItemStack.getCount());
-                inventoryItemStack.increment(delta);
-                playerItemStack.decrement(delta);
-            }
-            if (playerItemStack.isEmpty()) {
-                playerInventoryIndex++;
-            }
-            if (inventoryItemStack.getCount() >= inventoryItemStack.getMaxCount()) {
-                inventoryIndex++;
-            }
-        }
-        inventory.markDirty();
-        player.closeHandledScreen();
+        return populatedSlots;
     }
 }
