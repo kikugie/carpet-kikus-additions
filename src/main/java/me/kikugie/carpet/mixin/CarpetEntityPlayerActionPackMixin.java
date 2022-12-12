@@ -1,7 +1,7 @@
 package me.kikugie.carpet.mixin;
 
 import carpet.helpers.EntityPlayerActionPack;
-import me.kikugie.carpet.ModSettings;
+import me.kikugie.carpet.access.ServerPlayerEntityAccess;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
@@ -19,28 +19,6 @@ import java.util.ArrayList;
 @Mixin(targets = "carpet/helpers/EntityPlayerActionPack$ActionType$1")
 public class CarpetEntityPlayerActionPackMixin {
     private BlockHitResult target;
-    @SuppressWarnings("InvalidInjectorMethodSignature")
-    @ModifyVariable(method = "execute",
-            at = @At(value = "INVOKE_ASSIGN",
-                    target = "Lcarpet/helpers/EntityPlayerActionPack;getTarget(Lnet/minecraft/server/network/ServerPlayerEntity;)Lnet/minecraft/util/hit/HitResult;"),
-            index = 4)
-    private HitResult getTarget(HitResult original) {
-        target = (BlockHitResult) original;
-        return original;
-    }
-
-    @Inject(method = "execute",
-            at = @At(value = "RETURN",
-                    target = "Lcarpet/helpers/EntityPlayerActionPack$ActionType$1;execute(Lnet/minecraft/server/network/ServerPlayerEntity;Lcarpet/helpers/EntityPlayerActionPack$Action;)Z",
-                    ordinal = 2))
-    private void dumpItems(ServerPlayerEntity player, EntityPlayerActionPack.Action action, CallbackInfoReturnable<Boolean> cir) {
-        if (!ModSettings.dumpItemsFlag) return;
-
-        BlockEntity targetedBlockEntity = player.getWorld().getBlockEntity(target.getBlockPos());
-        if (!(targetedBlockEntity instanceof Inventory inventory) || !((Inventory) targetedBlockEntity).canPlayerUse(player)) return;
-        mergeInventories(player.getInventory(), inventory);
-        player.closeHandledScreen();
-    }
 
     private static void mergeInventories(Inventory source, Inventory target) {
         ArrayList<Integer> sourceSlots = getPopulatedSlots(source);
@@ -50,7 +28,8 @@ public class CarpetEntityPlayerActionPackMixin {
         int sourceIndex = 0;
         int targetIndex = 0;
 
-        while (sourceIndex < source.size()) {
+        // TODO: Something inside tells me this is not the most optimal way, but at least it works
+        while (sourceIndex < source.size()) { // Specifically this looping over whole inventory, but `sourceSlots` wasn't working
             ItemStack sourceItemStack = source.getStack(sourceIndex);
             ItemStack targetItemStack = target.getStack(targetIndex);
             if (targetItemStack.getCount() >= targetItemStack.getMaxCount()) {
@@ -64,9 +43,9 @@ public class CarpetEntityPlayerActionPackMixin {
                 continue;
             }
             if (ItemStack.canCombine(sourceItemStack, targetItemStack)) {
-                int modifier = Math.min(sourceItemStack.getCount(), targetItemStack.getMaxCount() - targetItemStack.getCount());
-                targetItemStack.increment(modifier);
-                sourceItemStack.decrement(modifier);
+                int stackSizeDiff = Math.min(sourceItemStack.getCount(), targetItemStack.getMaxCount() - targetItemStack.getCount());
+                targetItemStack.increment(stackSizeDiff);
+                sourceItemStack.decrement(stackSizeDiff);
                 if (sourceItemStack.isEmpty()) {
                     sourceIndex++;
                     continue;
@@ -101,5 +80,30 @@ public class CarpetEntityPlayerActionPackMixin {
             populatedSlots.add(i);
         }
         return populatedSlots;
+    }
+
+    @SuppressWarnings("InvalidInjectorMethodSignature")
+    @ModifyVariable(method = "execute",
+            at = @At(value = "INVOKE_ASSIGN",
+                    target = "Lcarpet/helpers/EntityPlayerActionPack;getTarget(Lnet/minecraft/server/network/ServerPlayerEntity;)Lnet/minecraft/util/hit/HitResult;"),
+            index = 4)
+    private HitResult getTarget(HitResult original) {
+        target = (BlockHitResult) original;
+        return original;
+    }
+
+    @Inject(method = "execute",
+            at = @At(value = "RETURN",
+                    target = "Lcarpet/helpers/EntityPlayerActionPack$ActionType$1;execute(Lnet/minecraft/server/network/ServerPlayerEntity;Lcarpet/helpers/EntityPlayerActionPack$Action;)Z",
+                    ordinal = 2))
+    private void dumpItems(ServerPlayerEntity player, EntityPlayerActionPack.Action action, CallbackInfoReturnable<Boolean> cir) {
+        ServerPlayerEntityAccess playerAccess = (ServerPlayerEntityAccess) player;
+        if (!playerAccess.getDumpItemsFlag()) return;
+
+        BlockEntity targetedBlockEntity = player.getWorld().getBlockEntity(target.getBlockPos());
+        if (!(targetedBlockEntity instanceof Inventory inventory) || !((Inventory) targetedBlockEntity).canPlayerUse(player))
+            return;
+        mergeInventories(player.getInventory(), inventory);
+        player.closeHandledScreen();
     }
 }
