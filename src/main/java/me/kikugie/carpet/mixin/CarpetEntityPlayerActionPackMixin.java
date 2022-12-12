@@ -100,7 +100,7 @@ public class CarpetEntityPlayerActionPackMixin {
         ServerPlayerEntityAccess playerAccess = (ServerPlayerEntityAccess) player;
         if (!playerAccess.getDumpItemsFlag()) return;
 
-        BlockEntity targetedBlockEntity = player.getWorld().getBlockEntity(target.getBlockPos());
+        BlockEntity targetedBlockEntity = player.world.getBlockEntity(target.getBlockPos());
         if (!(targetedBlockEntity instanceof Inventory inventory) || !((Inventory) targetedBlockEntity).canPlayerUse(player))
             return;
         mergeInventories(player.getInventory(), inventory);

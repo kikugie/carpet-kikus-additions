@@ -26,7 +26,7 @@ public abstract class CarpetPlayerCommandMixin {
         player.setDumpItemsFlag(false);
     }
 
-    @Redirect(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/builder/RequiredArgumentBuilder;then(Lcom/mojang/brigadier/builder/ArgumentBuilder;)Lcom/mojang/brigadier/builder/ArgumentBuilder;", ordinal = 1))
+    @Redirect(method = "register", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/builder/RequiredArgumentBuilder;then(Lcom/mojang/brigadier/builder/ArgumentBuilder;)Lcom/mojang/brigadier/builder/ArgumentBuilder;", ordinal = 1), remap = false)
     private static ArgumentBuilder insertDumpItemsLiteral(RequiredArgumentBuilder<ServerCommandSource, String> instance, ArgumentBuilder argumentBuilder) {
         //thx Crec0 :3
         //noinspection unchecked
@@ -35,12 +35,6 @@ public abstract class CarpetPlayerCommandMixin {
             player.setDumpItemsFlag(true);
             return 1;
         }));
-    }
-
-    private static int enableDumpingItems(CommandContext<ServerCommandSource> context) {
-        var player = (ServerPlayerEntityAccess) getPlayer(context);
-        player.setDumpItemsFlag(true);
-        return 1;
     }
 
     private static ServerPlayerEntity getPlayer(CommandContext<ServerCommandSource> context) {

@@ -25,12 +25,11 @@
   ],
   "depends": {
     "fabricloader": "*",
-    "minecraft": "~1.19.2",
+    "minecraft": ">=${mc_version_compat} <=${mc_version}",
     "java": ">=17",
-    "carpet": "~1.4"
+    "carpet": "~${carpet_version}"
   },
   "suggests": {
-    "another-mod": "*"
   },
   "custom": {
     "modmenu:parent": "carpet"
