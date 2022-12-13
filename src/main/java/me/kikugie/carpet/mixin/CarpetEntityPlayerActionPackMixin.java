@@ -28,36 +28,43 @@ public class CarpetEntityPlayerActionPackMixin {
         int sourceIndex = 0;
         int targetIndex = 0;
 
-        // TODO: Something inside tells me this is not the most optimal way, but at least it works
-        while (sourceIndex < source.size()) { // Specifically this looping over whole inventory, but `sourceSlots` wasn't working
-            ItemStack sourceItemStack = source.getStack(sourceIndex);
-            ItemStack targetItemStack = target.getStack(targetIndex);
+        while (sourceIndex < sourceSlots.size()) {
+            if (targetIndex == targetSlots.size()) {
+                targetIndex = 0;
+                sourceIndex++;
+                continue;
+            }
+
+            int currentSourceSlot = sourceSlots.get(sourceIndex);
+            int currentTargetSlot = targetSlots.get(targetIndex);
+
+            ItemStack sourceItemStack = source.getStack(currentSourceSlot);
+            ItemStack targetItemStack = target.getStack(currentTargetSlot);
+
             if (targetItemStack.getCount() >= targetItemStack.getMaxCount()) {
                 targetIndex++;
                 continue;
             }
+
             if (targetItemStack.isEmpty()) {
-                target.setStack(targetIndex, sourceItemStack);
-                source.setStack(sourceIndex, ItemStack.EMPTY);
+                source.setStack(currentSourceSlot, ItemStack.EMPTY);
+                target.setStack(currentTargetSlot, sourceItemStack);
                 sourceIndex++;
+                targetIndex = 0;
                 continue;
             }
+
             if (ItemStack.canCombine(sourceItemStack, targetItemStack)) {
                 int stackSizeDiff = Math.min(sourceItemStack.getCount(), targetItemStack.getMaxCount() - targetItemStack.getCount());
-                targetItemStack.increment(stackSizeDiff);
                 sourceItemStack.decrement(stackSizeDiff);
+                targetItemStack.increment(stackSizeDiff);
                 if (sourceItemStack.isEmpty()) {
                     sourceIndex++;
-                    continue;
+                    targetIndex = 0;
                 }
                 continue;
             }
-
-            targetIndex = (targetIndex + 1) % targetSlots.size();
-            if (targetIndex == 0) {
-                sourceIndex++;
-            }
-
+            targetIndex++;
         }
         target.markDirty();
     }

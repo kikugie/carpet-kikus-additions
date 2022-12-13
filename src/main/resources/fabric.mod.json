@@ -27,7 +27,7 @@
     "fabricloader": "*",
     "minecraft": ">=${mc_version_compat} <=${mc_version}",
     "java": ">=17",
-    "carpet": "~${carpet_version}"
+    "carpet": "~1.4"
   },
   "suggests": {
   },
