@@ -1,6 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.0-SNAPSHOT'
-    id 'io.github.juuxel.loom-quiltflower' version '1.8.0'
+    id 'fabric-loom' version '1.5-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -8,7 +7,7 @@ sourceCompatibility = JavaVersion.VERSION_17
 targetCompatibility = JavaVersion.VERSION_17
 
 archivesBaseName = project.archives_base_name
-version = project.mod_version + "+" + project.minecraft_compatiblity_version + "-" + project.minecraft_version
+version = project.mod_version
 group = project.maven_group
 
 repositories {
@@ -33,7 +32,6 @@ processResources {
     filesMatching("fabric.mod.json") {
         expand "version": project.version,
                 "mc_version": project.minecraft_version,
-                "mc_version_compat": project.minecraft_compatiblity_version,
                 "carpet_version": project.carpet_version,
                 "mod_id": project.archives_base_name
     }

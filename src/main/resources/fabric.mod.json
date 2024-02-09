@@ -24,8 +24,8 @@
     "carpet-kikus-additions.mixins.json"
   ],
   "depends": {
-    "fabricloader": "*",
-    "minecraft": ">=${mc_version_compat} <=${mc_version}",
+    "fabricloader": ">=0.15",
+    "minecraft": ">=1.17",
     "java": ">=17",
     "carpet": "~1.4"
   },
